@@ -1,0 +1,150 @@
+---
+title: "HW4_CSC_8491_Jaghab"
+output: html_notebook
+author: Eli Jaghab
+---
+a. Read raw data
+---
+```{r}
+fuzzycars <- read.csv2(file = "/Users/eli/Desktop/Data\ Mining\ and\ DB\ Programming/car_data.csv", stringsAsFactors = TRUE)
+```
+---
+b. Create the training (80%) and test (20%) data set. You should split the two data sets using a random sample, and you should use your own unique Villanova Id number to set the seed before taking your sample.
+---
+```{r}
+#Training Data Percentage
+trainPct <- 0.8
+
+#Villanova ID Number Seed
+set.seed(01618670)
+trainRows <- sample(1:nrow(fuzzycars), trainPct * nrow(fuzzycars))
+
+#Create Training and Test Data Sets
+carTrain <- fuzzycars[trainRows,]
+carTest <- fuzzycars[-trainRows,]
+```
+---
+c. Build a decision tree model from your training data set to predict the value of acceptability on the basis of all the other variables. 
+---
+```{r}
+#install.packages("tree")
+library(tree)
+tree.train <- tree(acceptability~.,carTrain)
+```
+
+d. Show summary of tree
+---
+```{r}
+summary(tree.train)
+```
+e. Plot tree on graph and add text to it
+---
+```{r}
+plot(tree.train)
+text(tree.train, pretty = 0, cex = .5)
+```
+f. Generate a set of predictions for acceptability on your test data set, and create a confusion matrix to show the performance of your model. How did your model score for accuracy, precision, and recall?
+---
+```{r}
+tree.pred <- predict(tree.train, carTest, type = "class")
+tree.test <- tree(acceptability~.,carTest)
+summary(tree.test)
+
+
+#Look at differences between predictions and actual 
+data.frame(tree.pred, carTest$acceptability)
+library(caret)
+treeMatrix <- confusionMatrix(tree.pred, carTest$acceptability, mode = "prec_recall")
+treeMatrix
+```
+
+#The model accurately predicted 241 unacceptable cars and 93 acceptable cars. It did not identify any false positive cars and identified 12 false negatives cars
+
+#According to the accuracy score, this model scored 96.53% overall accuracy when prediciting the acceptability of a car. This measurement factors true/false positives and negatives
+
+#The model's precision score is 95.26% which means that of all the acceptable cars, this model predicted a small number of false negatives that should have been labeled at true positives when considering the acceptability of a car. 
+
+#In regards to the recall score, this model scored perfect for predicting acceptable cars in comparison to the total acceptable cars (100%). This means that the model did not predict a single false positive car. 
+
+
+
+g. How does the misclassification rate on your test data set compare to the misclassification rate you saw when you ran the summary() function on your model? Do the respective misclassification rates make sense? Explain.
+#Misclassification Error Rate on Train Data Set: 0.04486 = 62 / 1382 = 4.486%
+#Misclassification Error Rate on Test Data Set:  (1 - Accuracy): (1 - 0.9653)*100  = 3.47%
+#The error rate for the train set is larger because there are more observations in the set. Since there are more observations, it is a more accurate error rate compared to the error rate on the test data set. 
+
+
+
+h. Your other friend, Stinky, says that he has a great car that Fuzzy will love. The car has the following characteristics:
+
+purchase_price: high
+maint_cost: high
+num_doors: 2
+num_persons: 4
+trunk_size: small
+safety_rating: high
+
+Using your decision tree model, predict whether Stinky’s car will be acceptable to Fuzzy.
+
+---
+```{r}
+stinky <- data.frame(purchase_price = c('high'), maint_cost = c('high'), num_doors = c(2), num_persons = c(4), trunk_size = c('small'), safety_rating = c('high'), stringsAsFactors = TRUE)
+stinkyPred = predict(tree.train, stinky, type = "class")
+stinkyPred
+```
+#The model predicts that the car that Stinky suggested for Fuzzy will be acceptable. 
+
+i. Try to improve your test set results using a random forest. Show your code, your OOB error rate, and your accuracy, precision, and recall
+
+---
+```{r}
+library(randomForest)
+set.seed(01618670)
+
+rf.train <-randomForest(acceptability~.,carTrain, importance = TRUE)
+rf.train
+
+rf.pred <- predict(rf.train, carTest, type = "class")
+rfMatrix <- confusionMatrix(rf.pred, carTest$acceptability, mode = "prec_recall")
+rfMatrix
+```
+
+
+#The Out of Bag Error Rate of the decision tree model is calculated by considering the misclassified cars in relation to the total observations. In this model, there was 3 cars that was classified as acceptable when it was actually unacceptable, and 14 cars classified as unacceptable when they were actually acceptable. The OOB score for this model is the amount of misclassified cars divided by the total observations (14+3) / (14+3+943+422) = 1.23%
+
+#The model accurately predicted 247 unacceptable cars and 93 acceptable cars. It did not identify any false positive cars and identified 12 false negatives cars
+
+#According to the accuracy score, this model scored 98.527% overall accuracy when prediciting the acceptability of a car. This measurement factors true/false positives and negatives.
+
+#The model's precision score is 93.94% which means that of all the acceptable cars, this model predicted a small number of false negatives (6) that should have been labeled at true positives when considering the acceptability of a car. 
+
+#In regards to the recall score, this model also scored perfect for predicting acceptable cars in comparison to the total acceptable cars (100%). This means that the model did not predict a single false positive car. 
+
+j. What variables ended up being most important in the approach you used in the previous step? Show the code and the output that tell you this.
+
+---
+```{r}
+importance(rf.train)
+varImpPlot(rf.train)
+```
+#The Mean Decrease Accuracy plot identifites how much accuracy the model loses when by excluding each variable. The Mean Decrease Gini is a measure of how each variable contributes to each node. The most important variables in this approach are safety_rating, num_persons, and purchase_price according to the both of these plots. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
